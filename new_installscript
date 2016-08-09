@@ -1,0 +1,153 @@
+#!/bin/bash
+#Date: 2016-06-01
+#Last revision: 2016-08-09 01:24
+#Distribution used to test: Ubuntu 16.04, 14.04.4
+#Author: HyperFang8, Xyooz
+#Licence: none
+
+# Changelog
+# (2016-08-09) 01:24 - Xyooz
+#       - pushed wine version to 1.9.16-staging
+#	- added alpha client install option
+#	- fixed all broken downloads (=> all, except EUNE)
+  
+[ "$PLAYONLINUX" = "" ] && exit 0
+source "$PLAYONLINUX/lib/sources"
+  
+WINEVERSION="1.9.16-staging"
+  
+TITLE="League of Legends64"
+PREFIX="LeagueOfLegends64"
+SHORTCUT_NAME="League of Legends64"
+SHORTCUT_NAME_ALPHA="$SHORTCUT_NAME Alpha Client"
+ 
+POL_SetupWindow_Init
+ 
+POL_RequiredVersion "4.0.18" || POL_Debug_Fatal "$APPLICATION_TITLE 4.0.18 is required to install $TITLE"
+ 
+if which glxinfo; then
+        if ! glxinfo | grep -q GL_EXT_texture_compression_s3tc; then
+            POL_SetupWindow_message "$(eval_gettext 'Warning! S3TC compression is not available on your system.')"
+        fi
+fi
+ 
+POL_Debug_Init
+  
+POL_SetupWindow_presentation "League of Legends" "Riot Games" "https://riotgames.com/" "HyperFang8, Xyooz" "$PREFIX"
+  
+POL_SetupWindow_InstallMethod "DOWNLOAD,LOCAL"
+ 
+if [ "$INSTALL_METHOD" = "LOCAL" ]; then
+        cd "$HOME"
+        POL_SetupWindow_browse "$(eval_gettext 'Please select setup file!')" "$TITLE" "" "Windows Executables (*.exe)|*.exe;*.EXE"
+        SETUPFILE="$APP_ANSWER"
+else # DOWNLOAD
+        POL_System_TmpCreate "$PREFIX"
+        POL_SetupWindow_menu "$(eval_gettext 'Select your server region:')" "$TITLE" "EUNE~LA1~OC1~LA2~JP~BR~EUW~TR~NA~RU" "~"
+ 
+        case "$APP_ANSWER" in
+                "$(eval_gettext 'EUNE')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/EUNE/LeagueofLegends_EUNE_Installer_2016_05_13.exe"
+                        DOWNLOAD_MD5="a154cf3ba01671878ac5812f9e09db31"
+                ;;
+                "$(eval_gettext 'LA1')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/LA1/LeagueofLegends_LA1_Installer_2016_05_26.exe"
+                        DOWNLOAD_MD5="b77866076bd3f0b97c8a020822e8c310"
+                ;;
+                "$(eval_gettext 'OC1')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/OC1/LeagueofLegends_OC1_Installer_2016_05_13.exe"
+                        DOWNLOAD_MD5="19f81a29ffdeee6fa6b783230612ff8f"
+                ;;
+                "$(eval_gettext 'LA2')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/LA2/LeagueofLegends_LA2_Installer_2016_05_27.exe"
+                        DOWNLOAD_MD5="971065b812080452a18bb3a0769fd4ab"
+                ;;
+                "$(eval_gettext 'JP')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/JP/LeagueofLegends_JP_Installer_2016_05_31.exe"
+                        DOWNLOAD_MD5="4e7decfc3aec7afe56f7f53f1969617a"
+                ;;
+                "$(eval_gettext 'BR')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/BR/LeagueofLegends_BR_Installer_2016_05_13.exe"
+                        DOWNLOAD_MD5="bcbddc3a64b0ca461eba16f27651b8f7"
+                ;;
+                "$(eval_gettext 'EUW')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/EUW/LeagueofLegends_EUW_Installer_2016_05_13.exe"
+                        DOWNLOAD_MD5="5307c65c5d03b34048c26671456735f2"
+                ;;
+                "$(eval_gettext 'TR')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/TR/LeagueofLegends_TR_Installer_2016_05_13.exe"
+                        DOWNLOAD_MD5=""
+                ;;
+                "$(eval_gettext 'NA')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/NA/LeagueofLegends_NA_Installer_2016_05_13.exe"
+                        DOWNLOAD_MD5="5cc3e6fa0437e37bafa84ca9fe658043"
+                ;;
+                "$(eval_gettext 'RU')")
+                        DOWNLOAD_URL="https://riotgamespatcher-a.akamaihd.net/ShellInstaller/RU/LeagueofLegends_RU_Installer_2016_05_13.exe"
+                        DOWNLOAD_MD5="479dca2f8d7c54edaf3f2fcceaf431c1"
+                ;;       
+        esac
+	
+        DOWNLOAD_FILE=$POL_System_TmpDir/$(basename "$DOWNLOAD_URL")
+        POL_Call POL_Download_retry "$DOWNLOAD_URL" "$DOWNLOAD_FILE" "$DOWNLOAD_MD5" "$TITLE standalone installer"
+        SETUPFILE="$DOWNLOAD_FILE"
+fi
+ 
+POL_System_SetArch "x64"
+POL_Wine_SelectPrefix "$PREFIX"
+POL_Wine_PrefixCreate "$WINEVERSION"
+
+POL_Call POL_Install_d3dx9_36
+POL_Wine_SetVideoDriver
+
+# Extraction process of gamefiles from installer
+
+mkdir "$REPERTOIRE/wineprefix/$PREFIX/drive_c/tmplol/"
+cd "$REPERTOIRE/wineprefix/$PREFIX/drive_c/tmplol/"
+
+POL_Wine_WaitBefore "$TITLE"
+POL_Wine "$SETUPFILE" /extract:C:\\tmplol
+
+mv LoL.*.msi LoL.msi
+POL_Wine_WaitBefore "$TITLE"
+POL_Wine msiexec /a C:/tmplol/LoL.msi  /qb
+cd ..
+rm -rf tmplol
+
+# Installing alpha client
+
+POL_SetupWindow_question "Did you get accepted for alpha client testing and do you want to install the alpha client now ?" "$TITLE"
+if [ "$APP_ANSWER" = "TRUE" ]; then
+	POL_SetupWindow_InstallMethod "LOCAL"
+ 
+	if [ "$INSTALL_METHOD" = "LOCAL" ]; then
+	    cd "$HOME"
+	    POL_SetupWindow_browse "$(eval_gettext 'Please select the setup file for the alpha client to run.')" "$TITLE" "" "Windows Executables (*.exe)|*.exe;*.EXE"
+	    FULL_INSTALLER="$APP_ANSWER"
+	fi
+
+	POL_SetupWindow_message 'Warning: Please uncheck the checkbox "Launch League client alpha now?" at the end of the setup.' "$TITLE"
+	
+	POL_Call POL_Install_vcrun2012
+	POL_Wine_WaitBefore "$TITLE"
+	POL_Wine "$FULL_INSTALLER"
+
+	POL_SetupWindow_question "Do you also want to create a launcher/shortcut for the old client ?" "$TITLE"
+	if [ "$APP_ANSWER" = "TRUE" ]; then
+		POL_Shortcut "lol.launcher.admin.exe" "$SHORTCUT_NAME" "$SHORTCUT_NAME.png" "" "Game;RolePlaying;"
+	fi
+	POL_Shortcut "LeagueClient.exe" "$SHORTCUT_NAME_ALPHA" "" "--no-sandbox" "Game;RolePlaying;"
+else
+	POL_Shortcut "lol.launcher.admin.exe" "$SHORTCUT_NAME" "$SHORTCUT_NAME.png" "" "Game;RolePlaying;"
+fi
+
+ 
+if [ "$INSTALL_METHOD" = "DOWNLOAD" ]; then
+        POL_SetupWindow_question "Save files for further installation?" "$TITLE"
+        if [ "$APP_ANSWER" = "FALSE" ]; then
+                POL_System_TmpDelete
+        fi
+fi
+ 
+POL_SetupWindow_Close
+exit 0
