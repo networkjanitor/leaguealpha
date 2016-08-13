@@ -10,8 +10,6 @@
 #       - pushed wine version to 1.9.16-staging
 #	- added alpha client install option
 #	- fixed all broken downloads (=> all, except EUNE)
-# (2016-08-13) 15:41 - Xyooz
-#	- added the old winetricks components to the install process (because d3dx9_36 was not enough to run league)
   
 [ "$PLAYONLINUX" = "" ] && exit 0
 source "$PLAYONLINUX/lib/sources"
